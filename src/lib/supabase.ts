@@ -1,45 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
 
-function getEnv(name: string) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// 🔒 Public client (for auth, frontend-safe)
+export const getSupabasePublic = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase env vars missing");
   }
-  return value;
-}
 
-function getSupabaseUrl() {
-  const url = getEnv("NEXT_PUBLIC_SUPABASE_URL");
-  if (url.includes("supabase.com/dashboard")) {
-    throw new Error(
-      "Invalid NEXT_PUBLIC_SUPABASE_URL. Use your project API URL like https://<project-ref>.supabase.co, not the dashboard URL."
-    );
+  return createClient(supabaseUrl, supabaseAnonKey);
+};
+
+// 🔐 Admin client (server only)
+export const getSupabaseAdmin = () => {
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase admin env vars missing");
   }
-  return url;
-}
 
-export function getSupabaseAdmin() {
-  return createClient(
-    getSupabaseUrl(),
-    getEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
-
-export function getSupabasePublic() {
-  return createClient(
-    getSupabaseUrl(),
-    getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
